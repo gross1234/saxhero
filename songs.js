@@ -1,6 +1,23 @@
 /* SaxHero data: fingerings, songs, lessons.
    Notes are written pitch for alto sax (treble clef). Durations are in beats. */
 
+/* ============================================================
+   Instruments
+   Each family has its own fingering chart. Sax fingerings are
+   accurate; trumpet valves are accurate; flute and clarinet are
+   simplified starter charts (marked in the UI).
+   transpose = semitones from written pitch to sounding pitch.
+   ============================================================ */
+const INSTRUMENTS = {
+  'alto-sax':    { label: 'Alto Sax',     family: 'sax',      transpose: -9,  synth: { type: 'sax',   cutoff: 4.5, detune: 8,  vib: 0.006, breath: 0.05 } },
+  'soprano-sax': { label: 'Soprano Sax',  family: 'sax',      transpose: -2,  synth: { type: 'sax',   cutoff: 5.5, detune: 5,  vib: 0.007, breath: 0.04 } },
+  'tenor-sax':   { label: 'Tenor Sax',    family: 'sax',      transpose: -14, synth: { type: 'sax',   cutoff: 3.8, detune: 10, vib: 0.006, breath: 0.07 } },
+  'bari-sax':    { label: 'Baritone Sax', family: 'sax',      transpose: -21, synth: { type: 'sax',   cutoff: 3.0, detune: 12, vib: 0.005, breath: 0.09 } },
+  'trumpet':     { label: 'Trumpet',      family: 'trumpet',  transpose: -2,  synth: { type: 'brass' } },
+  'clarinet':    { label: 'Clarinet',     family: 'clarinet', transpose: -2,  synth: { type: 'reed' } },
+  'flute':       { label: 'Flute',        family: 'flute',    transpose: 0,   synth: { type: 'air' } },
+};
+
 /* Fingering lanes: [octave, L1, L2, L3, R1, R2, R3] — standard alto/tenor fingerings */
 const FINGERINGS = {
   'D4':  [0,1,1,1,1,1,1],
@@ -25,6 +42,68 @@ const FINGERINGS = {
   'C#6': [1,0,0,0,0,0,0],
 };
 
+/* Trumpet valves [V1, V2, V3] — standard Bb trumpet fingerings (written pitch) */
+const FINGERINGS_TRUMPET = {
+  'D4':  [1,0,1], 'E4':  [1,1,0], 'F4':  [1,0,0], 'F#4': [0,1,0], 'G4':  [0,0,0],
+  'G#4': [0,1,1], 'A4':  [1,1,0], 'Bb4': [1,0,0], 'B4':  [0,1,0], 'C5':  [0,0,0],
+  'C#5': [1,1,0], 'D5':  [1,0,0], 'Eb5': [0,1,1], 'E5':  [0,0,0], 'F5':  [1,0,0],
+  'F#5': [0,1,0], 'G5':  [0,0,0], 'A5':  [1,1,0], 'Bb5': [1,0,0], 'B5':  [0,1,0],
+  'C6':  [0,0,0], 'C#6': [1,1,0],
+};
+
+/* Flute [L1, L2, L3, R1, R2, R3] — simplified starter chart */
+const FINGERINGS_FLUTE = {
+  'D4':  [1,1,1,1,1,1], 'E4':  [1,1,1,1,1,0], 'F4':  [1,1,1,1,0,0], 'F#4': [1,1,1,0,0,1],
+  'G4':  [1,1,1,0,0,0], 'G#4': [1,1,1,0,0,0], 'A4':  [1,1,0,0,0,0], 'Bb4': [1,0,0,1,0,0],
+  'B4':  [1,0,0,0,0,0], 'C5':  [0,1,0,0,0,0], 'C#5': [0,0,0,0,0,0], 'D5':  [0,1,1,1,1,1],
+  'Eb5': [0,1,1,1,1,1], 'E5':  [1,1,1,1,1,0], 'F5':  [1,1,1,1,0,0], 'F#5': [1,1,1,0,0,1],
+  'G5':  [1,1,1,0,0,0], 'A5':  [1,1,0,0,0,0], 'Bb5': [1,0,0,1,0,0], 'B5':  [1,0,0,0,0,0],
+  'C6':  [0,1,0,0,0,0], 'C#6': [0,0,0,0,0,0],
+};
+
+/* Clarinet [register, L1, L2, L3, R1, R2, R3] — simplified starter chart */
+const FINGERINGS_CLARINET = {
+  'D4':  [0,1,1,1,1,1,1], 'E4':  [0,1,1,1,1,1,0], 'F4':  [0,1,1,1,1,0,0], 'F#4': [0,1,1,1,0,1,0],
+  'G4':  [0,0,0,0,0,0,0], 'G#4': [0,0,0,0,0,0,0], 'A4':  [0,1,0,0,0,0,0], 'Bb4': [1,1,0,0,0,0,0],
+  'B4':  [1,1,1,1,1,1,1], 'C5':  [1,1,1,1,1,1,0], 'C#5': [1,1,1,1,1,0,0], 'D5':  [1,1,1,1,0,0,0],
+  'Eb5': [1,1,1,1,0,0,0], 'E5':  [1,1,1,0,0,0,0], 'F5':  [1,1,0,0,0,0,0], 'F#5': [1,1,0,1,0,0,0],
+  'G5':  [1,0,0,0,0,0,0], 'A5':  [1,0,1,0,0,0,0], 'Bb5': [1,0,1,1,0,0,0], 'B5':  [1,0,1,1,1,0,0],
+  'C6':  [1,0,1,1,1,1,0], 'C#6': [1,0,1,1,1,1,1],
+};
+
+/* Per-family chart layout: lane keys, colors, group labels, octave-key shape */
+const FAMILIES = {
+  sax: {
+    fingerings: FINGERINGS, simplified: false, octShape: true,
+    lanes: [
+      { color: '#f2a25c', group: 'octave' },
+      { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' },
+      { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' },
+    ],
+  },
+  trumpet: {
+    fingerings: FINGERINGS_TRUMPET, simplified: false, octShape: false, numbered: true,
+    lanes: [
+      { color: '#f3ef7d', group: 'valves' }, { color: '#f3ef7d', group: 'valves' }, { color: '#f3ef7d', group: 'valves' },
+    ],
+  },
+  clarinet: {
+    fingerings: FINGERINGS_CLARINET, simplified: true, octShape: false,
+    lanes: [
+      { color: '#f2a25c', group: 'register' },
+      { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' },
+      { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' },
+    ],
+  },
+  flute: {
+    fingerings: FINGERINGS_FLUTE, simplified: true, octShape: false,
+    lanes: [
+      { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' }, { color: '#f3ef7d', group: 'left' },
+      { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' }, { color: '#a8c8f0', group: 'right' },
+    ],
+  },
+};
+
 /* Staff step index relative to E4 (bottom line of treble staff) */
 const STAFF_STEPS = { C: -2, D: -1, E: 0, F: 1, G: 2, A: 3, B: 4 };
 
@@ -34,12 +113,19 @@ const SONGS = [
     id: 'careless-whisper', rank: 1, title: 'Careless Whisper', artist: 'George Michael',
     difficulty: 'Medium', tempo: 76, free: true,
     notes: [
-      {n:'G4',d:0.5},{n:'A4',d:0.5},{n:'B4',d:0.5},{n:'D5',d:0.5},
-      {n:'C5',d:2},{n:'B4',d:1},{n:'A4',d:1},{n:'F#4',d:3},{n:'R',d:1},
-      {n:'G4',d:0.5},{n:'A4',d:0.5},{n:'B4',d:0.5},{n:'D5',d:0.5},
-      {n:'B4',d:2},{n:'A4',d:1},{n:'G4',d:1},{n:'E4',d:3},{n:'R',d:1},
-      {n:'E5',d:2},{n:'D5',d:1},{n:'B4',d:1},{n:'C5',d:2},
-      {n:'B4',d:1},{n:'G4',d:1},{n:'A4',d:4},
+      // phrase 1: 16th pickup run, then the long syncopated descent (Bm, written for alto)
+      {n:'F#4',d:0.25},{n:'A4',d:0.25},{n:'B4',d:0.25},{n:'C#5',d:0.25},
+      {n:'D5',d:1.5},{n:'C#5',d:0.75},{n:'B4',d:0.75},{n:'F#4',d:2.75},{n:'R',d:0.5},
+      // phrase 2: same pickup, descent lands lower
+      {n:'F#4',d:0.25},{n:'A4',d:0.25},{n:'B4',d:0.25},{n:'C#5',d:0.25},
+      {n:'B4',d:1.5},{n:'A4',d:0.75},{n:'F#4',d:0.75},{n:'E4',d:3},{n:'R',d:0.5},
+      // phrase 3: the rising answer
+      {n:'E5',d:1.25},{n:'D5',d:0.75},{n:'B4',d:0.75},{n:'C#5',d:1.25},
+      {n:'B4',d:0.5},{n:'A4',d:0.5},{n:'B4',d:3},{n:'R',d:1},
+      // phrase 4: full run up, then the big descent home
+      {n:'F#4',d:0.25},{n:'G4',d:0.25},{n:'A4',d:0.25},{n:'B4',d:0.25},
+      {n:'C#5',d:0.25},{n:'D5',d:0.25},{n:'E5',d:0.25},{n:'F#5',d:0.25},
+      {n:'E5',d:1},{n:'D5',d:1},{n:'C#5',d:1},{n:'B4',d:4},
     ]
   },
   {

@@ -226,15 +226,11 @@ const overlay = document.getElementById('playerOverlay');
 const canvas = document.getElementById('playerCanvas');
 const ctx = canvas.getContext('2d');
 
-const LANES = [
-  { key: 'oct', color: '#f2a25c', label: 'octave key' },
-  { key: 'L1', color: '#f3ef7d', label: '' },
-  { key: 'L2', color: '#f3ef7d', label: 'left hand' },
-  { key: 'L3', color: '#f3ef7d', label: '' },
-  { key: 'R1', color: '#a8c8f0', label: '' },
-  { key: 'R2', color: '#a8c8f0', label: 'right hand' },
-  { key: 'R3', color: '#a8c8f0', label: '' },
-];
+function currentInstrument() {
+  return INSTRUMENTS[state.instrument] ? state.instrument : 'alto-sax';
+}
+function instrumentDef() { return INSTRUMENTS[currentInstrument()]; }
+function familyDef() { return FAMILIES[instrumentDef().family]; }
 
 const player = {
   song: null, playing: false, t: 0, lastFrame: 0, speed: 1, loop: false,
@@ -277,6 +273,12 @@ function closePlayer() {
 }
 
 document.getElementById('playerBack').onclick = closePlayer;
+// instrument picker — persisted, options built from INSTRUMENTS
+const instSelect = document.getElementById('instrumentSelect');
+instSelect.innerHTML = Object.entries(INSTRUMENTS)
+  .map(([id, i]) => `<option value="${id}">${i.label}</option>`).join('');
+instSelect.value = currentInstrument();
+instSelect.onchange = e => { state.instrument = e.target.value; saveState(state); };
 document.getElementById('speedSelect').onchange = e => { player.speed = parseFloat(e.target.value); };
 document.getElementById('loopToggle').onchange = e => { player.loop = e.target.checked; };
 document.getElementById('restartBtn').onclick = () => { player.t = -4; stopAllVoices(); };
@@ -315,10 +317,20 @@ window.addEventListener('resize', () => { if (overlay.classList.contains('open')
 const NOW_X = 170;
 const PX_PER_BEAT = 80;
 
-function laneYs(h) {
+function laneYs(h, fam) {
+  const lanes = fam.lanes;
   const top = 190;
-  const gap = Math.min(64, (h - top - 40) / 7.6);
-  return [top, top + gap * 1.4, top + gap * 2.4, top + gap * 3.4, top + gap * 4.9, top + gap * 5.9, top + gap * 6.9];
+  // extra half-gap between finger groups; trumpet's 3 valves get wider spacing
+  const groupBreaks = lanes.filter((l, i) => i > 0 && l.group !== lanes[i - 1].group).length;
+  const units = lanes.length - 1 + groupBreaks * 0.5 || 1;
+  const gap = Math.min(lanes.length <= 3 ? 96 : 64, (h - top - 60) / units);
+  const ys = [];
+  let y = top;
+  lanes.forEach((l, i) => {
+    if (i > 0) y += gap * (l.group !== lanes[i - 1].group ? 1.5 : 1);
+    ys.push(y);
+  });
+  return ys;
 }
 
 function noteParts(n) {
@@ -371,8 +383,11 @@ function draw() {
   ctx.fillStyle = beam;
   ctx.fillRect(NOW_X - 10, 18, 20, 140);
 
-  const ys = laneYs(h);
-  const R = 22;
+  const fam = familyDef();
+  const lanes = fam.lanes;
+  const ys = laneYs(h, fam);
+  const R = lanes.length <= 3 ? 26 : 22;
+  let lastLabelX = -Infinity;
 
   // notes: staff heads, names, lane bars
   for (const note of player.schedule) {
@@ -411,14 +426,14 @@ function draw() {
       ctx.fillStyle = active ? '#fff' : 'rgba(255,255,255,.9)';
       ctx.font = '600 24px -apple-system, sans-serif';
       const label = p.letter + (p.acc === '#' ? '♯' : p.acc === 'b' ? '♭' : '');
-      ctx.fillText(label, x - 8, 152);
+      if (x - lastLabelX >= 34) { ctx.fillText(label, x - 8, 152); lastLabelX = x; }
       if (p.acc) { ctx.font = '20px serif'; ctx.fillText(p.acc === '#' ? '♯' : '♭', x - 22, yNote + 6); }
     }
 
     // fingering bars
-    const fing = FINGERINGS[note.n];
+    const fing = fam.fingerings[note.n];
     if (!fing) continue;
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < lanes.length; i++) {
       if (!fing[i]) continue;
       const y = ys[i];
       const barX = Math.max(x, NOW_X);
@@ -427,7 +442,7 @@ function draw() {
       ctx.beginPath();
       const bh = 15;
       roundRect(ctx, barX + 6, y - bh / 2, barW, bh, 7);
-      ctx.fillStyle = LANES[i].color;
+      ctx.fillStyle = lanes[i].color;
       ctx.globalAlpha = active && barX === NOW_X ? 1 : 0.88;
       ctx.fill();
       ctx.globalAlpha = 1;
@@ -436,14 +451,14 @@ function draw() {
 
   // key circles + octave key shape + labels (drawn over the bars)
   const activeNote = player.schedule.find(n => n.n !== 'R' && player.t >= n.start && player.t < n.end);
-  const activeFing = activeNote ? FINGERINGS[activeNote.n] : null;
-  for (let i = 0; i < 7; i++) {
+  const activeFing = activeNote ? fam.fingerings[activeNote.n] : null;
+  for (let i = 0; i < lanes.length; i++) {
     const y = ys[i];
     const on = activeFing && activeFing[i];
     ctx.lineWidth = 2.4;
-    ctx.strokeStyle = LANES[i].color;
+    ctx.strokeStyle = lanes[i].color;
 
-    if (i === 0) {
+    if (i === 0 && fam.octShape) {
       // octave key: teardrop shape
       ctx.save();
       ctx.translate(NOW_X - R - 32, y);
@@ -453,21 +468,33 @@ function draw() {
       ctx.quadraticCurveTo(11, 17, 2, 16);
       ctx.quadraticCurveTo(6, 0, 4, -16);
       ctx.closePath();
-      if (on) { glowFill(ctx, LANES[0].color); } else ctx.stroke();
+      if (on) { glowFill(ctx, lanes[0].color); } else ctx.stroke();
       ctx.restore();
     } else {
       ctx.beginPath();
-      ctx.arc(NOW_X - R - 18, y, R * (i > 3 ? 1.06 : 0.92), 0, Math.PI * 2);
-      if (on) { glowFill(ctx, LANES[i].color); } else ctx.stroke();
+      ctx.arc(NOW_X - R - 18, y, R * (lanes[i].group === 'right' ? 1.06 : 0.92), 0, Math.PI * 2);
+      if (on) { glowFill(ctx, lanes[i].color); } else ctx.stroke();
+      if (fam.numbered && !on) {
+        ctx.fillStyle = 'rgba(255,255,255,.55)';
+        ctx.font = '700 18px -apple-system, sans-serif';
+        ctx.fillText(String(i + 1), NOW_X - R - 24, y + 6);
+      }
     }
   }
-  // lane group labels (octave / left hand / right hand) at left of circles
+  // group labels at left of circles (middle lane of each group)
   ctx.font = '500 21px -apple-system, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,.5)';
-  ctx.fillText('octave', 18, ys[0] + 7);
-  ctx.fillText('left', 34, ys[2] + 7);
-  ctx.fillStyle = '#c9b8f5';
-  ctx.fillText('right', 30, ys[5] + 7);
+  const groups = {};
+  lanes.forEach((l, i) => { (groups[l.group] = groups[l.group] || []).push(i); });
+  for (const [name, idxs] of Object.entries(groups)) {
+    const mid = idxs[Math.floor(idxs.length / 2)];
+    ctx.fillStyle = name === 'right' ? '#c9b8f5' : 'rgba(255,255,255,.5)';
+    ctx.fillText(name, 16, ys[mid] + 7);
+  }
+  if (fam.simplified) {
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.font = '400 14px -apple-system, sans-serif';
+    ctx.fillText('simplified starter chart', 16, h - 18);
+  }
 
   // count-in indicator
   if (player.t < 0 && player.playing) {
@@ -522,7 +549,7 @@ function frame(now) {
     for (const note of player.schedule) {
       if (note.n === 'R') continue;
       if (note.start >= prevT && note.start < player.t) {
-        playSax(noteFreq(note.n), note.d / bps);
+        playVoice(noteFreq(note.n), note.d / bps);
       }
     }
     // end of song
@@ -556,35 +583,87 @@ function noteFreq(n) {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-function playSax(freq, durSec) {
+let noiseBuf = null;
+function getNoiseBuf() {
+  if (!noiseBuf) {
+    noiseBuf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuf;
+}
+
+function breathNoise(t0, stopAt, centerFreq, level) {
+  const src = audio.createBufferSource(); src.buffer = getNoiseBuf(); src.loop = true;
+  const bp = audio.createBiquadFilter(); bp.type = 'bandpass';
+  bp.frequency.value = centerFreq; bp.Q.value = 0.8;
+  const g = audio.createGain(); g.gain.value = level;
+  src.connect(bp); bp.connect(g);
+  src.start(t0); src.stop(stopAt);
+  return g;
+}
+
+function playVoice(freqWritten, durSec) {
   if (!audio) return;
+  const inst = instrumentDef();
+  const s = inst.synth;
+  const freq = freqWritten * Math.pow(2, inst.transpose / 12);
   const t0 = audio.currentTime;
   const dur = Math.max(0.12, durSec - 0.06);
 
-  const o1 = audio.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = freq;
-  const o2 = audio.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = freq; o2.detune.value = 8;
+  const oscs = [], extras = [];
   const filt = audio.createBiquadFilter(); filt.type = 'lowpass';
-  filt.frequency.value = Math.min(3200, freq * 4.5); filt.Q.value = 1.1;
-
-  // delayed vibrato
-  const lfo = audio.createOscillator(); lfo.frequency.value = 5.2;
-  const lfoGain = audio.createGain(); lfoGain.gain.setValueAtTime(0, t0);
-  lfoGain.gain.setTargetAtTime(freq * 0.006, t0 + 0.18, 0.12);
-  lfo.connect(lfoGain); lfoGain.connect(o1.frequency); lfoGain.connect(o2.frequency);
-
   const env = audio.createGain();
+  let attack = 0.045, peak = 1, vibDepth = freq * 0.006, vibRate = 5.2, vibDelay = 0.18;
+
+  if (s.type === 'sax') {
+    const o1 = audio.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = freq;
+    const o2 = audio.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = freq; o2.detune.value = s.detune;
+    oscs.push(o1, o2);
+    filt.frequency.value = Math.min(3200, freq * s.cutoff); filt.Q.value = 1.1;
+    vibDepth = freq * s.vib;
+    extras.push(breathNoise(t0, t0 + dur + 0.15, freq * 2.5, s.breath));
+  } else if (s.type === 'brass') {
+    const o1 = audio.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = freq;
+    oscs.push(o1);
+    // brassy attack: filter blooms open
+    filt.frequency.setValueAtTime(freq * 1.5, t0);
+    filt.frequency.exponentialRampToValueAtTime(Math.min(5000, freq * 6), t0 + 0.09);
+    filt.Q.value = 2.5;
+    attack = 0.025; vibDepth = freq * 0.004; vibDelay = 0.3; peak = 0.85;
+  } else if (s.type === 'reed') {
+    const o1 = audio.createOscillator(); o1.type = 'square'; o1.frequency.value = freq;
+    oscs.push(o1);
+    filt.frequency.value = Math.min(2600, freq * 3.5); filt.Q.value = 0.8;
+    attack = 0.07; vibDepth = freq * 0.003; peak = 0.7;
+  } else { // 'air' — flute
+    const o1 = audio.createOscillator(); o1.type = 'triangle'; o1.frequency.value = freq;
+    oscs.push(o1);
+    filt.frequency.value = Math.min(6000, freq * 6); filt.Q.value = 0.5;
+    attack = 0.09; vibDepth = freq * 0.009; vibRate = 5.5; vibDelay = 0.25; peak = 0.9;
+    extras.push(breathNoise(t0, t0 + dur + 0.15, 2000, 0.1));
+  }
+
+  const lfo = audio.createOscillator(); lfo.frequency.value = vibRate;
+  const lfoGain = audio.createGain(); lfoGain.gain.setValueAtTime(0, t0);
+  lfoGain.gain.setTargetAtTime(vibDepth, t0 + vibDelay, 0.12);
+  lfo.connect(lfoGain);
+  oscs.forEach(o => lfoGain.connect(o.frequency));
+
   env.gain.setValueAtTime(0.0001, t0);
-  env.gain.exponentialRampToValueAtTime(1, t0 + 0.045);
-  env.gain.setValueAtTime(1, t0 + Math.max(0.05, dur - 0.09));
+  env.gain.exponentialRampToValueAtTime(peak, t0 + attack);
+  env.gain.setValueAtTime(peak, t0 + Math.max(attack + 0.01, dur - 0.09));
   env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + 0.1);
 
-  o1.connect(filt); o2.connect(filt); filt.connect(env); env.connect(master);
-  o1.start(t0); o2.start(t0); lfo.start(t0);
+  oscs.forEach(o => o.connect(filt));
+  extras.forEach(g => g.connect(env));
+  filt.connect(env); env.connect(master);
   const stopAt = t0 + dur + 0.15;
-  o1.stop(stopAt); o2.stop(stopAt); lfo.stop(stopAt);
-  const v = { o1, o2, lfo, env };
+  oscs.forEach(o => { o.start(t0); o.stop(stopAt); });
+  lfo.start(t0); lfo.stop(stopAt);
+  const v = { env };
   voices.add(v);
-  o1.onended = () => voices.delete(v);
+  oscs[0].onended = () => voices.delete(v);
 }
 
 function click() {
@@ -636,7 +715,7 @@ function renderPaywall() {
         <div class="pw-bullets">
           <div><span class="ic">✓</span> All Top-10 songs + every lesson, fully unlocked</div>
           <div><span class="ic">✓</span> Unlimited song search — any song, playable instantly</div>
-          <div><span class="ic">✓</span> Slow-down, loop, and count-in practice tools</div>
+          <div><span class="ic">✓</span> Every instrument: 4 saxes, trumpet, clarinet, flute</div>
         </div>
         <div class="pw-social"><span class="stars">★★★★★</span> &nbsp;“I played Careless Whisper in a week.” — 12,000+ learners</div>
         <button class="btn primary block" id="pwNext">${expired ? 'See plans' : 'Continue'}</button>
