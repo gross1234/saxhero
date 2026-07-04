@@ -3,29 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SaxHero — Learn Saxophone</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<title>SaxHero — Learn Sax, Trumpet, Clarinet & Flute</title>
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
 <header class="topbar">
-  <div class="logo">🎷 <span>Sax<em>Hero</em></span></div>
+  <div class="logo" id="logoHome">🎷 <span>Sax<em>Hero</em></span></div>
   <nav class="tabs">
-    <button class="tab active" data-tab="songs">Songs</button>
+    <button class="tab" data-tab="songs">Songs</button>
     <button class="tab" data-tab="learn">Learn</button>
     <button class="tab" data-tab="search">Search</button>
+    <button class="tab" id="pricingLink">Pricing</button>
   </nav>
   <div class="account-area" id="accountArea"></div>
 </header>
 
 <main>
-  <!-- SONGS TAB -->
-  <section class="view active" id="view-songs">
-    <div class="hero">
-      <h1>Learn sax by <span class="hl">playing the hits</span></h1>
-      <p>Follow the lights. Sax (all four types), trumpet, clarinet &amp; flute — at your speed.</p>
+  <!-- HOME / LANDING -->
+  <section class="view active" id="view-home">
+    <div class="vhero">
+      <canvas id="heroCanvas"></canvas>
+      <div class="vhero-shade"></div>
+      <div class="vhero-content">
+        <h1>Play the songs you love.<br>On the instrument you love.</h1>
+        <p>Follow-the-lights tutorials with real fingerings for saxophone, trumpet, clarinet &amp; flute. Slow anything down. Loop the hard parts. Sound like you.</p>
+        <div class="vhero-ctas">
+          <button class="btn primary xl" id="heroTrialBtn">Start 7-day free trial</button>
+          <button class="btn ghost xl" id="heroDemoBtn">▶ See it in action</button>
+        </div>
+        <div class="vhero-note">No charge today · Cancel anytime</div>
+      </div>
+      <div class="vhero-scroll">▾</div>
     </div>
-    <h2 class="section-title">Top 10 Saxophone Songs</h2>
+
+    <section class="land-section">
+      <h2 class="land-title">How it works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Pick any song</h3>
+          <p>Start with the Top 10 sax classics — or search any song and get a playable arrangement in seconds.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Follow the lights</h3>
+          <p>The chart lights up exactly which keys to press, in time with the music. No sheet-music experience needed.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Slow it. Loop it. Nail it.</h3>
+          <p>Drop to half speed, loop the tricky bars, and build up until you're playing along at full tempo.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="land-section alt">
+      <h2 class="land-title">Start with the classics</h2>
+      <div class="song-grid" id="featuredGrid"></div>
+      <div class="center"><button class="btn ghost" id="allSongsBtn">See all 10 songs →</button></div>
+    </section>
+
+    <section class="land-section">
+      <h2 class="land-title">One app. Seven instruments.</h2>
+      <p class="land-sub">Every tutorial plays on any of them — with the right fingerings and the right sound.</p>
+      <div class="inst-strip">
+        <span class="inst-chip">🎷 Soprano Sax</span>
+        <span class="inst-chip">🎷 Alto Sax</span>
+        <span class="inst-chip">🎷 Tenor Sax</span>
+        <span class="inst-chip">🎷 Baritone Sax</span>
+        <span class="inst-chip">🎺 Trumpet</span>
+        <span class="inst-chip">🪈 Clarinet</span>
+        <span class="inst-chip">🪈 Flute</span>
+      </div>
+    </section>
+
+    <section class="land-section alt" id="pricing">
+      <h2 class="land-title">Simple pricing</h2>
+      <p class="land-sub">Every plan starts with 7 days free. Cancel anytime.</p>
+      <div class="price-row">
+        <div class="price-card best">
+          <div class="price-badge">BEST VALUE · SAVE 55%</div>
+          <h3>Yearly</h3>
+          <div class="price-big">$5.83<span>/mo</span></div>
+          <div class="price-sub">$69.99 billed annually after trial</div>
+          <ul>
+            <li>All songs &amp; lessons unlocked</li>
+            <li>Unlimited song search</li>
+            <li>All 7 instruments</li>
+          </ul>
+          <button class="btn primary block price-cta">Start free trial</button>
+        </div>
+        <div class="price-card">
+          <h3>Monthly</h3>
+          <div class="price-big">$12.99<span>/mo</span></div>
+          <div class="price-sub">Flexible, month to month</div>
+          <ul>
+            <li>All songs &amp; lessons unlocked</li>
+            <li>Unlimited song search</li>
+            <li>All 7 instruments</li>
+          </ul>
+          <button class="btn ghost block price-cta">Start free trial</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="land-section">
+      <h2 class="land-title">Learners love the lights</h2>
+      <div class="quote-row">
+        <div class="quote-card"><div class="stars">★★★★★</div><p>"I played Careless Whisper in a week. The lights make it click in a way sheet music never did."</p><span>— Demo review</span></div>
+        <div class="quote-card"><div class="stars">★★★★★</div><p>"Switched the same song between alto and tenor to hear the difference. My band teacher was impressed."</p><span>— Demo review</span></div>
+        <div class="quote-card"><div class="stars">★★★★★</div><p>"Half-speed plus loop is the whole reason I finally got through Baker Street."</p><span>— Demo review</span></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- SONGS TAB -->
+  <section class="view" id="view-songs">
+    <div class="hero small">
+      <h1>Top 10 <span class="hl">saxophone songs</span></h1>
+      <p>Every tutorial plays on all seven instruments.</p>
+    </div>
     <div class="song-grid" id="songGrid"></div>
   </section>
 
@@ -42,7 +140,7 @@
   <section class="view" id="view-search">
     <div class="hero small">
       <h1>Any song. <span class="hl">Playable instantly.</span></h1>
-      <p>Search a song and we'll generate a live, playable sax arrangement for it.</p>
+      <p>Search a song and we'll generate a live, playable arrangement for it.</p>
     </div>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Try “Golden Hour”, “Levitating”, anything…" autocomplete="off">
@@ -54,9 +152,31 @@
   </section>
 </main>
 
-<footer class="footer">
-  <span>SaxHero prototype — arrangements are simplified for learning.</span>
-  <button class="linklike" id="resetDemo">Reset demo state</button>
+<footer class="bigfoot">
+  <div class="bigfoot-cols">
+    <div class="bigfoot-brand">
+      <div class="logo">🎷 <span>Sax<em>Hero</em></span></div>
+      <p>Learn wind instruments the fun way — by playing the songs you already love.</p>
+    </div>
+    <div class="bigfoot-col">
+      <h4>Product</h4>
+      <button class="footlink" data-tab="songs">Songs</button>
+      <button class="footlink" data-tab="learn">Lessons</button>
+      <button class="footlink" data-tab="search">Song search</button>
+      <button class="footlink" id="footPricing">Pricing</button>
+    </div>
+    <div class="bigfoot-col">
+      <h4>Instruments</h4>
+      <span>Saxophone (all four)</span>
+      <span>Trumpet</span>
+      <span>Clarinet</span>
+      <span>Flute</span>
+    </div>
+  </div>
+  <div class="bigfoot-fine">
+    <span>SaxHero prototype — arrangements are simplified for learning. Checkout is a demo; no payments are processed.</span>
+    <button class="linklike" id="resetDemo">Reset demo state</button>
+  </div>
 </footer>
 
 <!-- PLAYER OVERLAY -->
@@ -111,7 +231,7 @@
   </div>
 </div>
 
-<script src="songs.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="songs.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

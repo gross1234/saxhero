@@ -45,14 +45,27 @@ function renderAccount() {
   if (cta) cta.onclick = () => openPaywall();
 }
 
-/* ---------- Tabs ---------- */
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + btn.dataset.tab).classList.add('active');
-  });
-});
+/* ---------- Navigation ---------- */
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('.tab[data-tab], .footlink[data-tab]').forEach(btn =>
+  btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+document.getElementById('logoHome').onclick = () => showTab('home');
+document.getElementById('logoHome').style.cursor = 'pointer';
+const goPricing = () => {
+  showTab('home');
+  requestAnimationFrame(() => document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' }));
+};
+document.getElementById('pricingLink').onclick = goPricing;
+document.getElementById('footPricing').onclick = goPricing;
+document.getElementById('heroTrialBtn').onclick = () => openPaywall();
+document.getElementById('heroDemoBtn').onclick = () => openPlayer(SONGS[0]);
+document.getElementById('allSongsBtn').onclick = () => showTab('songs');
+document.querySelectorAll('.price-cta').forEach(b => b.onclick = () => openPaywall());
 
 /* ---------- Song grid ---------- */
 function songDuration(song) {
@@ -92,6 +105,20 @@ function renderSongs() {
     };
   });
   renderGenerated();
+}
+
+/* ---------- Featured songs on the landing page ---------- */
+function renderFeatured() {
+  const grid = document.getElementById('featuredGrid');
+  if (!grid) return;
+  grid.innerHTML = SONGS.slice(0, 3).map(s => songCardHTML(s)).join('');
+  grid.querySelectorAll('.song-card').forEach(card => {
+    card.onclick = () => {
+      const song = SONGS.find(s => s.id === card.dataset.song);
+      if (!song.free && !isEntitled()) return openPaywall();
+      openPlayer(song);
+    };
+  });
 }
 
 /* ---------- Lessons ---------- */
@@ -862,5 +889,99 @@ function refreshAll() {
   renderAccount();
   renderSongs();
   renderLessons();
+  renderFeatured();
 }
 refreshAll();
+
+/* ============================================================
+   HERO DEMO — silent auto-playing loop of the tutorial view,
+   rendered as the landing page's "video" background.
+   ============================================================ */
+(function startHeroDemo() {
+  const c = document.getElementById('heroCanvas');
+  if (!c) return;
+  const hc = c.getContext('2d');
+  const song = SONGS[0];
+  const schedule = [];
+  let tt = 0;
+  for (const n of song.notes) { schedule.push({ ...n, start: tt, end: tt + n.d }); tt += n.d; }
+  const total = tt;
+  let t = -2, last = performance.now();
+  const stars = Array.from({ length: 80 }, () => ({
+    x: Math.random(), y: Math.random(),
+    r: Math.random() * 2 + 0.4, a: Math.random() * 0.45 + 0.08,
+    warm: Math.random() > 0.4,
+  }));
+  const COLORS = ['#f2a25c', '#f3ef7d', '#f3ef7d', '#f3ef7d', '#a8c8f0', '#a8c8f0', '#a8c8f0'];
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    // only animate while the home view is showing
+    if (!document.getElementById('view-home').classList.contains('active')) { last = now; return; }
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    t += dt * (song.tempo / 60) * 0.85;
+    if (t > total + 3) t = -2;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr)) { c.width = w * dpr; c.height = h * dpr; }
+    hc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hc.fillStyle = '#000';
+    hc.fillRect(0, 0, w, h);
+    for (const s of stars) {
+      hc.beginPath();
+      hc.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+      hc.fillStyle = s.warm ? `rgba(210,170,120,${s.a})` : `rgba(200,190,220,${s.a})`;
+      hc.fill();
+    }
+
+    // lanes on the right side so the shade keeps text readable on the left
+    const nowX = w * 0.66;
+    const ppb = Math.max(70, w * 0.075);
+    const laneTop = h * 0.16, laneGap = Math.min(60, h * 0.1);
+    const ys = [0, 1, 2, 3, 4.5, 5.5, 6.5].map(u => laneTop + u * laneGap);
+    const R = Math.min(19, laneGap * 0.36);
+
+    const activeNote = schedule.find(n => n.n !== 'R' && t >= n.start && t < n.end);
+    const activeFing = activeNote ? FINGERINGS[activeNote.n] : null;
+
+    for (const note of schedule) {
+      if (note.n === 'R') continue;
+      const x = nowX + (note.start - t) * ppb;
+      const xEnd = x + note.d * ppb;
+      if (xEnd < nowX - 20 || x > w + 40) continue;
+      const fing = FINGERINGS[note.n];
+      if (!fing) continue;
+      for (let i = 0; i < 7; i++) {
+        if (!fing[i]) continue;
+        const barX = Math.max(x, nowX);
+        const barW = xEnd - barX - 8;
+        if (barW < 2) continue;
+        hc.beginPath();
+        const bh = R * 0.62;
+        const rr = Math.min(bh / 2, barW / 2);
+        hc.roundRect(barX + 4, ys[i] - bh / 2, barW, bh, rr);
+        hc.fillStyle = COLORS[i];
+        hc.globalAlpha = 0.82;
+        hc.fill();
+        hc.globalAlpha = 1;
+      }
+    }
+    for (let i = 0; i < 7; i++) {
+      const on = activeFing && activeFing[i];
+      hc.beginPath();
+      hc.arc(nowX - R - 14, ys[i], R, 0, Math.PI * 2);
+      if (on) {
+        hc.save();
+        hc.shadowColor = '#fff'; hc.shadowBlur = 22;
+        hc.fillStyle = '#fff'; hc.fill();
+        hc.restore();
+      }
+      hc.lineWidth = 2.2;
+      hc.strokeStyle = COLORS[i];
+      hc.stroke();
+    }
+  }
+  requestAnimationFrame(frame);
+})();
