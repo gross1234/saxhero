@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaxHero — Learn Saxophone</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">🎷 <span>Sax<em>Hero</em></span></div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="songs">Songs</button>
+    <button class="tab" data-tab="learn">Learn</button>
+    <button class="tab" data-tab="search">Search</button>
+  </nav>
+  <div class="account-area" id="accountArea"></div>
+</header>
+
+<main>
+  <!-- SONGS TAB -->
+  <section class="view active" id="view-songs">
+    <div class="hero">
+      <h1>Learn sax by <span class="hl">playing the hits</span></h1>
+      <p>Follow the lights. Real fingerings, real songs, at your speed.</p>
+    </div>
+    <h2 class="section-title">Top 10 Saxophone Songs</h2>
+    <div class="song-grid" id="songGrid"></div>
+  </section>
+
+  <!-- LEARN TAB -->
+  <section class="view" id="view-learn">
+    <div class="hero small">
+      <h1>Start from <span class="hl">zero</span></h1>
+      <p>Five short lessons to get you from unboxing to your first song.</p>
+    </div>
+    <div class="lesson-list" id="lessonList"></div>
+  </section>
+
+  <!-- SEARCH TAB -->
+  <section class="view" id="view-search">
+    <div class="hero small">
+      <h1>Any song. <span class="hl">Playable instantly.</span></h1>
+      <p>Search a song and we'll generate a live, playable sax arrangement for it.</p>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Try “Golden Hour”, “Levitating”, anything…" autocomplete="off">
+      <button class="btn primary" id="searchBtn">Generate tutorial</button>
+    </div>
+    <div id="searchStatus"></div>
+    <h2 class="section-title" id="genTitle" style="display:none">Your generated tutorials</h2>
+    <div class="song-grid" id="genGrid"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>SaxHero prototype — arrangements are simplified for learning.</span>
+  <button class="linklike" id="resetDemo">Reset demo state</button>
+</footer>
+
+<!-- PLAYER OVERLAY -->
+<div class="player-overlay" id="playerOverlay">
+  <div class="player-top">
+    <button class="icon-btn" id="playerBack">←</button>
+    <div class="player-title">
+      <strong id="playerSongTitle"></strong>
+      <span id="playerSongArtist"></span>
+    </div>
+    <div class="player-controls">
+      <label class="speed-label">Speed
+        <select id="speedSelect">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+        </select>
+      </label>
+      <label class="loop-label"><input type="checkbox" id="loopToggle"> Loop</label>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="playerCanvas"></canvas>
+    <div class="player-tip" id="playerTip">Tip: To make this tutorial slower or faster, use the Speed control above.</div>
+  </div>
+  <div class="transport">
+    <button class="icon-btn big" id="restartBtn" title="Restart">⟲</button>
+    <button class="play-btn" id="playBtn">▶</button>
+  </div>
+</div>
+
+<!-- LESSON INFO MODAL -->
+<div class="modal-backdrop" id="lessonModal">
+  <div class="modal lesson-modal">
+    <button class="modal-close" data-close="lessonModal">✕</button>
+    <h2 id="lessonModalTitle"></h2>
+    <div id="lessonModalBody"></div>
+    <button class="btn primary" data-close="lessonModal">Got it</button>
+  </div>
+</div>
+
+<!-- ONBOARDING / PAYWALL MODAL -->
+<div class="modal-backdrop" id="paywallModal">
+  <div class="modal paywall-modal">
+    <button class="modal-close" data-close="paywallModal">✕</button>
+    <div class="steps-dots" id="stepDots"></div>
+    <div id="paywallStep"></div>
+  </div>
+</div>
+
+<script src="songs.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
